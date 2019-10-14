@@ -1,0 +1,33 @@
+{
+  "name": "ptserver",
+  "version": "1.0.0",
+  "description": "Proiect CodersLab",
+  "main": "gulpfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack -p",
+    "server": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gabrieltanase05/myProject.git"
+  },
+  "author": "Gabriel Tanase",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gabrieltanase05/myProject/issues"
+  },
+  "homepage": "https://github.com/gabrieltanase05/myProject#readme",
+  "devDependencies": {},
+  "dependencies": {
+    "bcrypt": "^3.0.6",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^8.1.0",
+    "email-existence": "^0.1.6",
+    "express": "^4.17.1",
+    "mongoose": "^5.7.1",
+    "morgan": "^1.9.1",
+    "nodemon": "^1.19.2"
+  }
+}
