@@ -7,15 +7,13 @@ const router = express.Router();
 const User = require('./models/user');
 const UserSession = require('./models/userSession');
 require('dotenv/config');
-
 app.use(bodyParser.json());
 app.use(cors());
 app.use('/api', router);
 
-//Listening Server
+//Port Listening Server
 app.listen(8080);
-
-//Connect to db.mongo
+//Connection to MongoDB
 mongoose.connect(
     process.env.DB_CONNECTION,
     {   useNewUrlParser: true,
@@ -24,40 +22,37 @@ mongoose.connect(
     },
 
     ()=> console.log('Connected to MongoDB!')
-
 );
-
-//Check the connection to db.mongo
+//Check the connection to MongoDB
 mongoose.connection.on('error', console.error.bind(console, 'Error connection to MongoDB'))
-
-
-//Register the user
-router.post('/register', (req, res, next) => {
-    const {firstName, lastName, password} = req.body.dataPost;
-    let {email} = req.body.dataPost;
-
+//POST Request for user Registration
+router.post('/register', (req, res) => {
+    const {firstName, lastName, password, isTrainer} = req.body;
+    let {email} = req.body;
     //Verify User
     //Convert email to lower case
-    email= email.toLowerCase();
+    email= email.toLowerCase().trim();
     //Verify email doesn't exist
     //**Need to verify this -email veify- method**
     User.find({email:email},(err, previosUsers)=>{
         if(err){
-            res.status(400).send({
+            res.send({
                 succes: false,
                 message:'Error: Server Error!'});
-        } else if (previosUsers){
-            return res.status(400).send({
+        } else if (previosUsers.length>1){
+            console.log(previosUsers);
+            return res.send({
                 succes: false,
-                msg: 'The email address is already exist.'
+                message: 'The email address is already exist.'
             });
         }
     });
-    //Save the user!
+    //Save the new user
     const user = new User();
     user.firstName = firstName;
     user.lastName = lastName;
     user.email = email;
+    user.isTrainer = isTrainer;
     user.password = user.generateHash(password);
     if(!firstName){
         return res.end({
@@ -85,35 +80,38 @@ router.post('/register', (req, res, next) => {
     };
     user.save((err) => {
         if (err){
-            res.json({succes: false,
+            res.send({succes: false,
                 error: err,
             });
         } else {
-            res.json({succes: true});
-        }
+            res.send({
+                succes: true,
+                message:'Signup succesfuly! Please Login.'
+            });
 
+        }
     });
 });
-//Login the user
+//POST Request for user Login
 router.post('/login', (req, res, next) => {
-    const {password} = req.body.dataPost
-    let {email} = req.body.dataPost
+    const {password} = req.body
+    let {email} = req.body
     //Verify User
     if(!email){
         return res.send({
             succes: false,
-            message: 'ERROR: Email cannot be empty!'
+            message: 'Email cannot be empty!'
         });
     };
     if(!password){
         return res.send({
             succes: false,
-            message: 'ERROR: Password cannot be empty!'
+            message: 'Password cannot be empty!'
         });
     };
     //Convert email to lower case
     email = email.toLowerCase();
-    //Fint the user and check the password
+    //Find the user and check the password
     User.find({
     email: email
     }, (err, users)=>{
@@ -126,16 +124,17 @@ router.post('/login', (req, res, next) => {
         if(users.length != 1){
             return res.send({
                 succes: false,
-                message: 'ERROR: Invalid E-mail!'
+                message: 'Invalid e-mail!'
             });
         };
         const user = users[0];
         if(!user.validPassword(password)){
                 return res.send({
                     succes: false,
-                    message: 'ERROR: Invalid Password!'
+                    message: 'Invalid Password!'
                 });
         };
+        //Create new user session
         const userSession = new UserSession();
         userSession.userID = user._id;
         userSession.save((err, doc)=>{
@@ -149,16 +148,16 @@ router.post('/login', (req, res, next) => {
                succes: true,
                message: 'Valid Login!',
                token: doc._id,
+               isTrainer: user.isTrainer,
                userid: user._id
            });
         });
     });
 });
-//Verify the user ---INCOMPLETED AND UNVERIFY PROCESS---
+//Verify the token of user
 router.get('/verify', (req, res, next) => {
-//Get the token
     const {token} = req.query;
-//Verify the token is one of the kithe_main_appnd and is not deleted
+//Check the user and token is ok
     UserSession.find({
         _id: token,
         isDeleted: false
@@ -182,9 +181,10 @@ router.get('/verify', (req, res, next) => {
             }
         });
 });
-//Logout
+//GET Request for user Logout
 router.get('/logout', (req, res, next)=>{
     const {token} = req.query
+    //Check the user and set isDeleted to TRUE
     UserSession.findOneAndUpdate({
         _id: token,
         isDeleted: false
@@ -203,30 +203,40 @@ router.get('/logout', (req, res, next)=>{
         });
     })
 });
-//Load user info
+//Load the user informations for Profile
 router.get('/userInfo/', function(req, res){
     const {id}=req.query
+    //Find the user in MobgoDB
     User.find({_id: id}, function(err, docs){
         if(err) {
             return res.send({
                 succes: false,
                 message: 'ERROR: Server ERROR!'
             });s
+            //Send the data to FrontEnd
         } else {
             res.send(docs)
         }
     })
 });
-//Update user info(Save)
+//Update the user informations(Save)
 router.post('/updateUserInfo/', function(req, res){
     const {id}=req.query
+    //Data for update
     const dataSend = req.body
+    //Find the user in MobgoDB and sent the update
     User.findOneAndUpdate({_id: id}, dataSend, (err, result)=>{
         if(err){
-            res.status(404).end
+            res.status(404).end({
+                succes: false,
+                message: 'ERROR: Server ERROR!'
+            })
         }
-        return console.log(result)
-    })
+        return res.send({
+            succes: true,
+            message: 'Update!'
+        })
+    })//Check the file exist
         .then(doc=>{
             if(!doc){
                 return res.status(404).end;

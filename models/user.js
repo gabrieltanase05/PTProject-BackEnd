@@ -61,6 +61,10 @@ const UserSchema = mongoose.Schema({
     isDeleted: {
         type: Boolean,
         default: false
+    },
+    isTrainer: {
+        type: Boolean,
+        default: false
     }
 });
 //Crypt the user password
